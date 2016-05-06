@@ -22,8 +22,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 # Extend the Spirit installed apps.
 # Check out the spirit.settings.py so you do not end up with duplicated apps.
 INSTALLED_APPS.extend([
-    # 'my_app1',
-    # 'my_app2',
+    'get_feedback',
 ])
 
 # same here, check out the spirit.settings.py
@@ -111,3 +110,5 @@ LOGGING = {
         },
     }
 }
+#Update SearchIndex in realtime
+HAYSTACK_SIGNAL_PROCESSOR = 'haystack.signals.RealtimeSignalProcessor'
