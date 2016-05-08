@@ -67,6 +67,11 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
+# 每個app都要再這裡新增static資料夾路徑
+STATIC_DIRS = (
+    os.path.join(BASE_DIR, 'get_feedback'),
+)
+
 MEDIA_URL = '/media/'
 
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

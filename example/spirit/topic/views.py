@@ -74,6 +74,7 @@ def update(request, pk):
 
 
 def detail(request, pk, slug):
+
     topic = Topic.objects.get_public_or_404(pk, request.user)
 
     if topic.slug != slug:
@@ -95,8 +96,17 @@ def detail(request, pk, slug):
 
     context = {
         'topic': topic,
-        'comments': comments
+        'comments': comments,
     }
+    
+    if request.POST:
+        data = request.POST.dict()
+        #all element of QuerySet is type of list, i dont know why but turn it into diction can disassembler its list into its origin type.
+        ans = ( int(data['check_present_TrueFalse']) + int(data['punish_present_TrueFalse']) )
+        post_context = {
+            'ans':ans
+        }
+        context.update(post_context) # 如果有post就把他更新進context dictionary
 
     return render(request, 'spirit/topic/detail.html', context)
 

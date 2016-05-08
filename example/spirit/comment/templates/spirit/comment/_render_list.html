@@ -38,6 +38,8 @@
                             {% endif %}
                         </div>
                         {# 只有第一個commet需要引入get_feedback的html表單 #}
+                        {% include "get_feedback/feedback_statistics.html" %}
+                        {# 只有第一個commet需要引入get_feedback的html表單 #}
                         {% if  forloop.first %}
                             {% include "get_feedback/submit_form.html" %}
                         {% endif %}
