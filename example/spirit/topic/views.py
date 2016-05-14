@@ -18,6 +18,7 @@ from ..comment.models import Comment
 from .models import Topic
 from .forms import TopicForm
 from . import utils
+from .models import Course
 
 
 @login_required
@@ -99,14 +100,36 @@ def detail(request, pk, slug):
         'comments': comments,
     }
     
+    # this part is for get_feedback
+
     if request.POST:
         data = request.POST.dict()
         #all element of QuerySet is type of list, i dont know why but turn it into diction can disassembler its list into its origin type.
-        ans = ( int(data['check_present_TrueFalse']) + int(data['punish_present_TrueFalse']) )
+        models_dict = {
+            'school' : 'NCHU',
+            'name' : '演算法',
+            'professor' : '范耀中'
+        }
+        models_dict['f1'] = ( int(data['check_present_TrueFalse'])*0.3 + int(data['punish_present_TrueFalse'])*0.7 )
+        models_dict['f2'] = ( int(data['feedback_learn']) + int(data['feedback_gpa']) ) / 2
+        models_dict['f3'] = ( int(data['feedback_gpa']) )
+        models_dict['f4'] = ( int(data['feedback_easy'])*0.7 + int(data['feedback_loading'])*0.1 + int(data['feedback_test_amount'] + int(data['feedback_test_hard'] )*0.1  )
+        # models_dict['f5'] = ( int(data['feedback_atmosphere']) )
+
+        # course_object, created = Course.objects.update_or_create(school='NCHU',name='演算法',professor='范耀中',defaults=models_dict)
+        # obj, created = Course.objects.update_or_create(
+            # school='NCHU',name='演算法',professor='范耀中',defaults=models_dict)
+        # print(obj);
         post_context = {
-            'ans':ans
+            'f1':models_dict['f1'],
+            'f2':models_dict['f2'],
+            'f3':models_dict['f3'],
+            'f4':models_dict['f4'],
+            'f5':models_dict['f5']
         }
         context.update(post_context) # 如果有post就把他更新進context dictionary
+
+    # this part is for get_feedback
 
     return render(request, 'spirit/topic/detail.html', context)
 
