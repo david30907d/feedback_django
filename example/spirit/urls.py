@@ -11,6 +11,8 @@ import spirit.search.urls
 import spirit.category.urls
 import spirit.topic.urls
 import spirit.comment.urls
+from django.contrib import admin
+admin.autodiscover()
 
 
 patterns = [

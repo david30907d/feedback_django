@@ -18,6 +18,7 @@ from ..comment.models import Comment
 from .models import Topic
 from .forms import TopicForm
 from . import utils
+from django.utils import timezone # auto generate create time.
 from .models import Course
 
 
@@ -105,31 +106,18 @@ def detail(request, pk, slug):
     if request.POST:
         data = request.POST.dict()
         #all element of QuerySet is type of list, i dont know why but turn it into diction can disassembler its list into its origin type.
-        models_dict = {
-            'school' : 'NCHU',
-            'name' : '演算法',
-            'professor' : '范耀中'
-        }
-        models_dict['f1'] = ( int(data['check_present_TrueFalse'])*0.3 + int(data['punish_present_TrueFalse'])*0.7 )
-        models_dict['f2'] = ( int(data['feedback_learn']) + int(data['feedback_gpa']) ) / 2
-        models_dict['f3'] = ( int(data['feedback_gpa']) )
-        models_dict['f4'] = ( int(data['feedback_easy'])*0.7 + int(data['feedback_loading'])*0.1 + int(data['feedback_test_amount'] + int(data['feedback_test_hard'] )*0.1  )
-        # models_dict['f5'] = ( int(data['feedback_atmosphere']) )
 
-        # course_object, created = Course.objects.update_or_create(school='NCHU',name='演算法',professor='范耀中',defaults=models_dict)
-        # obj, created = Course.objects.update_or_create(
-            # school='NCHU',name='演算法',professor='范耀中',defaults=models_dict)
-        # print(obj);
-        post_context = {
-            'f1':models_dict['f1'],
-            'f2':models_dict['f2'],
-            'f3':models_dict['f3'],
-            'f4':models_dict['f4'],
-            'f5':models_dict['f5']
-        }
+        post_context = post_feedback(data)
+
         context.update(post_context) # 如果有post就把他更新進context dictionary
 
     # this part is for get_feedback
+
+    # This part is auto load statistic of course into Radar_chart!!
+
+    context['course_object'] = auto_load_radarChart(1)
+
+    # This part is auto load statistic of course into Radar_chart!!
 
     return render(request, 'spirit/topic/detail.html', context)
 
@@ -158,3 +146,70 @@ def index_active(request):
     }
 
     return render(request, 'spirit/topic/active.html', context)
+
+#########################my function ###########################
+@login_required
+def auto_publish(request, category_id=4):
+    if category_id:
+        get_object_or_404(Category.objects.visible(),
+                          pk=category_id)
+
+    if request.method == 'POST':
+        form = TopicForm(user=request.user, data=request.POST)
+        cform = CommentForm(user=request.user, data=request.POST)
+
+        if not request.is_limited and all([form.is_valid(), cform.is_valid()]):  # TODO: test!
+            # wrap in transaction.atomic?
+            topic = form.save()
+            cform.topic = topic
+            comment = cform.save()
+            comment_posted(comment=comment, mentions=cform.mentions)
+            return redirect(topic.get_absolute_url())
+    else:
+        form = TopicForm(user=request.user, initial={'category': category_id, })
+        cform = CommentForm()
+
+    context = {
+        'form': form,
+        'cform': cform
+    }
+
+    return render(request, 'spirit/topic/publish.html', context)
+
+def post_feedback(post_data):
+    models_dict = {
+        'school' : 'NCHU',
+        'name' : '演算法',
+        'professor' : '范耀中',
+        'create':timezone.localtime(timezone.now())
+    }
+
+    models_dict['feedback_freedom'] = ( int(post_data['feedback_check_present_TrueFalse'])*0.3 + int(post_data['feedback_punish_present_TrueFalse'])*0.7 )
+    models_dict['feedback_knowledgeable'] = ( int(post_data['feedback_learn']) + int(post_data['feedback_gpa']) ) / 2
+    models_dict['feedback_GPA'] = ( int(post_data['feedback_gpa']) )
+    models_dict['feedback_easy'] = ( int(post_data['feedback_easy'])*0.7 + int(post_data['feedback_loading'])*0.1 + int(post_data['feedback_test_amount']) + int(post_data['feedback_test_hard'])*0.1  )
+    models_dict['feedback_FU'] = ( int(post_data['feedback_atmosphere']) )
+
+    # 如果有這門課的心得就get出來，沒有的話就先用這個人的評分存進db
+    # course_object, created = Course.objects.get_or_create(school='NCHU',name='演算法',professor='范耀中',defaults=models_dict) 
+    course_object, created = Course.objects.update_or_create(school='NCHU',name='演算法',professor='范耀中',defaults=models_dict)
+    
+    # course_object.update(**models_dict)
+    # print(course_object);
+
+    post_context = {
+        'feedback_freedom':models_dict['feedback_freedom'],
+        'feedback_knowledgeable':models_dict['feedback_knowledgeable'],
+        'feedback_GPA':models_dict['feedback_GPA'],
+        'feedback_easy':models_dict['feedback_easy'],
+        'feedback_FU':models_dict['feedback_FU']
+    }
+    return post_context
+
+def auto_load_radarChart(pk):
+    course_object = get_object_or_404(
+        Course,pk=1
+    )
+    return course_object
+
+#########################my function ###########################

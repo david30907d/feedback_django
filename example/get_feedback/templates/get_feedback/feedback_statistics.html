@@ -19,11 +19,11 @@
   //Data
   var d = [
         [
-        {axis:"自由度",value: "{{ f1 |escapejs }}" },
-        {axis:"深度",value:"{{ f2 |escapejs }}" },
-        {axis:"GPA",value:"{{ f3 |escapejs }}" },
-        {axis:"輕鬆度",value:"{{ f4 |escapejs }}" },
-        {axis:"FU",value:"{{ f5 |escapejs }}" }
+        {axis:"自由度",value: "{{ course_object.feedback_freedom |escapejs }}" },
+        {axis:"深度",value:"{{ course_object.feedback_knowledgeable |escapejs }}" },
+        {axis:"GPA",value:"{{ course_object.feedback_GPA |escapejs }}" },
+        {axis:"輕鬆度",value:"{{ course_object.feedback_easy |escapejs }}" },
+        {axis:"FU",value:"{{ course_object.feedback_FU |escapejs }}" }
         ]
       ];
 
