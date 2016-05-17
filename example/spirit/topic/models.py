@@ -110,11 +110,12 @@ class Course(models.Model):
   professor = models.CharField(max_length=10)
   book = models.CharField(max_length=50)
   # those five field is for feedback on spirit.
-  feedback_freedom = models.DecimalField(max_digits=1, decimal_places=0)
-  feedback_FU = models.DecimalField(max_digits=1, decimal_places=0)
-  feedback_easy = models.DecimalField(max_digits=1, decimal_places=0)
-  feedback_GPA = models.DecimalField(max_digits=1, decimal_places=0)
-  feedback_knowledgeable = models.DecimalField(max_digits=1, decimal_places=0)
+  feedback_amount = models.DecimalField(max_digits=10,decimal_places=0,default=0)
+  feedback_freedom = models.FloatField()
+  feedback_FU = models.FloatField()
+  feedback_easy = models.FloatField()
+  feedback_GPA = models.FloatField()
+  feedback_knowledgeable = models.FloatField()
   # those five field is for feedback on spirit.
   create = models.DateTimeField()
   def __str__(self):

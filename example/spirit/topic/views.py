@@ -20,6 +20,7 @@ from .forms import TopicForm
 from . import utils
 from django.utils import timezone # auto generate create time.
 from .models import Course
+import decimal
 
 
 @login_required
@@ -105,17 +106,12 @@ def detail(request, pk, slug):
 
     if request.POST:
         data = request.POST.dict()
-        #all element of QuerySet is type of list, i dont know why but turn it into diction can disassembler its list into its origin type.
+        context['course_object'] = post_feedback(data)
+    else:
+        # This part is auto load statistic of course into Radar_chart!!
+        context['course_object']= auto_load_radarChart(1)
+        
 
-        post_context = post_feedback(data)
-
-        context.update(post_context) # 如果有post就把他更新進context dictionary
-
-    # this part is for get_feedback
-
-    # This part is auto load statistic of course into Radar_chart!!
-
-    context['course_object'] = auto_load_radarChart(1)
 
     # This part is auto load statistic of course into Radar_chart!!
 
@@ -191,25 +187,26 @@ def post_feedback(post_data):
     models_dict['feedback_FU'] = ( int(post_data['feedback_atmosphere']) )
 
     # 如果有這門課的心得就get出來，沒有的話就先用這個人的評分存進db
-    # course_object, created = Course.objects.get_or_create(school='NCHU',name='演算法',professor='范耀中',defaults=models_dict) 
-    course_object, created = Course.objects.update_or_create(school='NCHU',name='演算法',professor='范耀中',defaults=models_dict)
-    
-    # course_object.update(**models_dict)
-    # print(course_object);
+    course_object, created = Course.objects.get_or_create(school='NCHU',name='演算法',professor='范耀中',defaults=models_dict) 
+    course_object = accumulate_feedback(course_object, models_dict)
 
-    post_context = {
-        'feedback_freedom':models_dict['feedback_freedom'],
-        'feedback_knowledgeable':models_dict['feedback_knowledgeable'],
-        'feedback_GPA':models_dict['feedback_GPA'],
-        'feedback_easy':models_dict['feedback_easy'],
-        'feedback_FU':models_dict['feedback_FU']
-    }
-    return post_context
+    return course_object
 
 def auto_load_radarChart(pk):
     course_object = get_object_or_404(
         Course,pk=1
     )
+    return course_object
+
+def accumulate_feedback(course_object, models_dict):
+    course_object.feedback_amount = course_object.feedback_amount + 1
+    tot = int( course_object.feedback_amount )
+    course_object.feedback_freedom = round(( course_object.feedback_freedom*(tot-1) + models_dict['feedback_freedom'] )/tot, 2)
+    course_object.feedback_knowledgeable = round(( course_object.feedback_knowledgeable*(tot-1) + models_dict['feedback_knowledgeable'] )/tot, 2)
+    course_object.feedback_GPA = round(( course_object.feedback_GPA*(tot-1) + models_dict['feedback_GPA'] )/tot, 2)
+    course_object.feedback_easy = round(( course_object.feedback_easy*(tot-1) + models_dict['feedback_easy'] )/tot, 2)
+    course_object.feedback_FU = round(( course_object.feedback_FU*(tot-1) + models_dict['feedback_FU'] )/tot, 2)
+    course_object.save()
     return course_object
 
 #########################my function ###########################
