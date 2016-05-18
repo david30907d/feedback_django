@@ -21,6 +21,7 @@ from . import utils
 from django.utils import timezone # auto generate create time.
 from .models import Course
 import decimal, json, os
+from django.http.request import QueryDict, MultiValueDict
 
 
 @login_required
@@ -31,9 +32,6 @@ def publish(request, category_id=None):
                           pk=category_id)
 
     if request.method == 'POST':
-        print(request.POST)
-        print('-------------')
-        print(request.user)
         form = TopicForm(user=request.user, data=request.POST)
         cform = CommentForm(user=request.user, data=request.POST)
 
@@ -80,7 +78,6 @@ def update(request, pk):
 
 
 def detail(request, pk, slug):
-
     topic = Topic.objects.get_public_or_404(pk, request.user)
 
     if topic.slug != slug:
@@ -109,10 +106,10 @@ def detail(request, pk, slug):
 
     if request.POST:
         data = request.POST.dict()
-        context['course_object'] = post_feedback(data)
+        context['course_object'] = post_feedback(data, slug)
     else:
         # This part is auto load statistic of course into Radar_chart!!
-        context['course_object']= auto_load_radarChart(1)
+        context['course_object'] = auto_load_radarChart(slug)
         
 
 
@@ -146,73 +143,80 @@ def index_active(request):
 
     return render(request, 'spirit/topic/active.html', context)
 
-#########################my function ###########################
+######################### my function ###########################
 @login_required
-def auto_publish(request, category_id=5):
+def auto_publish(request, category_id=3):
     with open("/home/david/htdocs/feedback_django/example/spirit/topic/json/O.json","r",encoding='UTF-8') as file:
         jsonContent = json.load(file)
-        print(jsonContent['course'][0])
+        # print(jsonContent['course'][0])
+        
+        # <QueryDict: {'comment': ['fuck'], 'category': ['5'], 'csrfmiddlewaretoken': ['TrhHjnBCe5pAHjeSKGN4n3kbY3m7SvXh'], 'title': ['auto']}>
+        jsondict = {'category': ['3'], 'comment': ['this is test'],
+            'csrfmiddlewaretoken': ['TrhHjnBCe5pAHjeSKGN4n3kbY3m7SvXh'], 'title':  ['json works']}
+        qdict = QueryDict('',mutable=True)
+        qdict.update(jsondict)
 
     if category_id:
         get_object_or_404(Category.objects.visible(),
                           pk=category_id)
 
-    # if request.method == 'POST':
-    form = TopicForm(user=request.user, data=request.POST)
-    cform = CommentForm(user=request.user, data=request.POST)
-    # if not request.is_limited and all([form.is_valid(), cform.is_valid()]):  # TODO: test!
+    form = TopicForm(user=request.user, data=qdict)
+    cform = CommentForm(user=request.user, data=qdict)
+    print(form)
+    print(form.is_valid())
+    print(cform.is_valid())
+    if all([form.is_valid(), cform.is_valid()]):  # TODO: test!
         # wrap in transaction.atomic?
-    topic = form.save()
-    cform.topic = topic
-    comment = cform.save()
-    comment_posted(comment=comment, mentions=cform.mentions)
-    return redirect(topic.get_absolute_url())
-    # else:
-    #     form = TopicForm(user=request.user, initial={'category': category_id, })
-    #     cform = CommentForm()
+        topic = form.save()
+        cform.topic = topic
+        comment = cform.save()
+        comment_posted(comment=comment, mentions=cform.mentions)
+        return redirect(topic.get_absolute_url())
 
     context = {
         'form': form,
         'cform': cform
     }
-
     return render(request, 'spirit/topic/publish.html', context)
 
-def post_feedback(post_data):
-    models_dict = {
-        'school' : 'NCHU',
-        'name' : '演算法',
-        'professor' : '范耀中',
-        'create':timezone.localtime(timezone.now())
-    }
+def post_feedback(post_data, slug):
+    modelDict = return_modelDict(slug) # return 會把slug的網址的'-'給切開，然後以school、name、professor當作primary key創model
 
-    models_dict['feedback_freedom'] = ( int(post_data['feedback_check_present_TrueFalse'])*0.3 + int(post_data['feedback_punish_present_TrueFalse'])*0.7 )
-    models_dict['feedback_knowledgeable'] = ( int(post_data['feedback_learn']) + int(post_data['feedback_gpa']) ) / 2
-    models_dict['feedback_GPA'] = ( int(post_data['feedback_gpa']) )
-    models_dict['feedback_easy'] = ( int(post_data['feedback_easy'])*0.7 + int(post_data['feedback_loading'])*0.1 + int(post_data['feedback_test_amount']) + int(post_data['feedback_test_hard'])*0.1  )
-    models_dict['feedback_FU'] = ( int(post_data['feedback_atmosphere']) )
+    modelDict['feedback_freedom'] = ( int(post_data['feedback_check_present_TrueFalse'])/4 + int(post_data['feedback_punish_present_TrueFalse'])*3/4 )
+    modelDict['feedback_knowledgeable'] = ( int(post_data['feedback_learn']) + int(post_data['feedback_gpa']) ) / 2
+    modelDict['feedback_GPA'] = ( int(post_data['feedback_gpa']) )
+    modelDict['feedback_easy'] = ( int(post_data['feedback_easy'])*3/4 + int(post_data['feedback_loading'])/12 + int(post_data['feedback_test_amount'])/12 + int(post_data['feedback_test_hard'])/12  )
+    modelDict['feedback_FU'] = ( int(post_data['feedback_atmosphere']) )
 
     # 如果有這門課的心得就get出來，沒有的話就先用這個人的評分存進db
-    course_object, created = Course.objects.get_or_create(school='NCHU',name='演算法',professor='范耀中',defaults=models_dict) 
-    course_object = accumulate_feedback(course_object, models_dict)
+    course_object, created = Course.objects.get_or_create(school=modelDict['school'],name=modelDict['name'],professor=modelDict['professor'],create=modelDict['create'],defaults=modelDict) 
+    course_object = accumulate_feedback(course_object, modelDict)
 
     return course_object
 
-def auto_load_radarChart(pk):
-    course_object = get_object_or_404(
-        Course,pk=1
-    )
+def auto_load_radarChart(slug):
+    modelDict = return_modelDict(slug)
+    course_object = Course.objects.filter(school=modelDict['school'],name=modelDict['name'],professor=modelDict['professor'])
     return course_object
 
-def accumulate_feedback(course_object, models_dict):
+def accumulate_feedback(course_object, modelDict):
     course_object.feedback_amount = course_object.feedback_amount + 1
     tot = int( course_object.feedback_amount )
-    course_object.feedback_freedom = round(( course_object.feedback_freedom*(tot-1) + models_dict['feedback_freedom'] )/tot, 2)
-    course_object.feedback_knowledgeable = round(( course_object.feedback_knowledgeable*(tot-1) + models_dict['feedback_knowledgeable'] )/tot, 2)
-    course_object.feedback_GPA = round(( course_object.feedback_GPA*(tot-1) + models_dict['feedback_GPA'] )/tot, 2)
-    course_object.feedback_easy = round(( course_object.feedback_easy*(tot-1) + models_dict['feedback_easy'] )/tot, 2)
-    course_object.feedback_FU = round(( course_object.feedback_FU*(tot-1) + models_dict['feedback_FU'] )/tot, 2)
+    course_object.feedback_freedom = round(( course_object.feedback_freedom*(tot-1) + modelDict['feedback_freedom'] )/tot, 2)
+    course_object.feedback_knowledgeable = round(( course_object.feedback_knowledgeable*(tot-1) + modelDict['feedback_knowledgeable'] )/tot, 2)
+    course_object.feedback_GPA = round(( course_object.feedback_GPA*(tot-1) + modelDict['feedback_GPA'] )/tot, 2)
+    course_object.feedback_easy = round(( course_object.feedback_easy*(tot-1) + modelDict['feedback_easy'] )/tot, 2)
+    course_object.feedback_FU = round(( course_object.feedback_FU*(tot-1) + modelDict['feedback_FU'] )/tot, 2)
     course_object.save()
     return course_object
 
+def return_modelDict(slug):
+    slug = slug.split('-')
+    modelDict = {
+        'school' : slug[0],
+        'name' : slug[1],
+        'professor' : slug[2],
+        'create':timezone.localtime(timezone.now())
+    }
+    return modelDict
 #########################my function ###########################
