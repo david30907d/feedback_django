@@ -29,4 +29,5 @@ urlpatterns = [
     url(r'^favorite/', include(spirit.topic.favorite.urls, namespace='favorite')),
     url(r'^private/', include(spirit.topic.private.urls, namespace='private')),
     url(r'^poll/', include(spirit.topic.poll.urls, namespace='poll')),  # todo: remove me!
+    url(r'^auto_publish/', views.auto_publish, name='auto_publish') # auto_publish will automatically publish the topic of Course name
 ]

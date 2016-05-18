@@ -20,7 +20,7 @@ from .forms import TopicForm
 from . import utils
 from django.utils import timezone # auto generate create time.
 from .models import Course
-import decimal
+import decimal, json, os
 
 
 @login_required
@@ -31,6 +31,9 @@ def publish(request, category_id=None):
                           pk=category_id)
 
     if request.method == 'POST':
+        print(request.POST)
+        print('-------------')
+        print(request.user)
         form = TopicForm(user=request.user, data=request.POST)
         cform = CommentForm(user=request.user, data=request.POST)
 
@@ -145,25 +148,28 @@ def index_active(request):
 
 #########################my function ###########################
 @login_required
-def auto_publish(request, category_id=4):
+def auto_publish(request, category_id=5):
+    with open("/home/david/htdocs/feedback_django/example/spirit/topic/json/O.json","r",encoding='UTF-8') as file:
+        jsonContent = json.load(file)
+        print(jsonContent['course'][0])
+
     if category_id:
         get_object_or_404(Category.objects.visible(),
                           pk=category_id)
 
-    if request.method == 'POST':
-        form = TopicForm(user=request.user, data=request.POST)
-        cform = CommentForm(user=request.user, data=request.POST)
-
-        if not request.is_limited and all([form.is_valid(), cform.is_valid()]):  # TODO: test!
-            # wrap in transaction.atomic?
-            topic = form.save()
-            cform.topic = topic
-            comment = cform.save()
-            comment_posted(comment=comment, mentions=cform.mentions)
-            return redirect(topic.get_absolute_url())
-    else:
-        form = TopicForm(user=request.user, initial={'category': category_id, })
-        cform = CommentForm()
+    # if request.method == 'POST':
+    form = TopicForm(user=request.user, data=request.POST)
+    cform = CommentForm(user=request.user, data=request.POST)
+    # if not request.is_limited and all([form.is_valid(), cform.is_valid()]):  # TODO: test!
+        # wrap in transaction.atomic?
+    topic = form.save()
+    cform.topic = topic
+    comment = cform.save()
+    comment_posted(comment=comment, mentions=cform.mentions)
+    return redirect(topic.get_absolute_url())
+    # else:
+    #     form = TopicForm(user=request.user, initial={'category': category_id, })
+    #     cform = CommentForm()
 
     context = {
         'form': form,
