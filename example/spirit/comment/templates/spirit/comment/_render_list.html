@@ -4,7 +4,7 @@
 
     {% for c in comments %}
 
-		<div class="comment{% if c.action %} is-highlighted{% endif %}" id="c{{forloop.counter0|add:comments.start_index }}" data-number="{{ forloop.counter0|add:comments.start_index }}" data-pk="{{ c.pk }}">
+        <div class="comment{% if c.action %} is-highlighted{% endif %}" id="c{{forloop.counter0|add:comments.start_index }}" data-number="{{ forloop.counter0|add:comments.start_index }}" data-pk="{{ c.pk }}">
 
             {% if not c.is_removed %}
 
@@ -36,13 +36,14 @@
                             {% else %}
                                 <p>{% get_comment_action_text c.action %}.</p>
                             {% endif %}
+                            {# 只有第一個commet需要引入get_feedback的html表單 #}
+                            {# 只有第一個commet需要引入get_feedback的html表單 #}
+                            {% if  forloop.first %}
+                                {% include "get_feedback/feedback_statistics.html" %}
+                                {% include "get_feedback/submit_form.html" %}
+                            {% endif %}
+
                         </div>
-                        {# 只有第一個commet需要引入get_feedback的html表單 #}
-                        {% include "get_feedback/feedback_statistics.html" %}
-                        {# 只有第一個commet需要引入get_feedback的html表單 #}
-                        {% if  forloop.first %}
-                            {% include "get_feedback/submit_form.html" %}
-                        {% endif %}
                     </div>
                 </div>
 
@@ -127,16 +128,16 @@
 
             {% endif %}
 
-		</div>
+        </div>
 
-	{% endfor %}
+    {% endfor %}
 
 </div>
 
 
     <script>
 
-	$( document ).ready(function() {
+    $( document ).ready(function() {
 
         {% if user.is_authenticated %}
             $('.js-like').like( {
@@ -150,6 +151,6 @@
 
         hljs.initHighlightingOnLoad();
 
-	});
+    });
 
-	</script>
+    </script>
