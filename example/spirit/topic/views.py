@@ -18,10 +18,11 @@ from ..comment.models import Comment
 from .models import Topic
 from .forms import TopicForm
 from . import utils
+# below are imported by me
 from django.utils import timezone # auto generate create time.
-from .models import Course
-import decimal, json, os
-from django.http.request import QueryDict, MultiValueDict
+from get_feedback.models import Course
+import decimal, json
+from django.http.request import QueryDict
 
 
 @login_required
@@ -182,21 +183,25 @@ def auto_publish(request, category_id=3):
 def post_feedback(post_data, slug):
     modelDict = return_modelDict(slug) # return 會把slug的網址的'-'給切開，然後以school、name、professor當作primary key創model
 
+    modelDict = gradeFormula(modelDict, post_data)
+
+    # 如果有這門課的心得就get出來，沒有的話就先用這個人的評分存進db
+    course_object = Course.objects.get(school=modelDict['school'],name=modelDict['name'],professor=modelDict['professor']) 
+    course_object = accumulate_feedback(course_object, modelDict)
+
+    return course_object
+
+def gradeFormula(modelDict, post_data):
     modelDict['feedback_freedom'] = ( int(post_data['feedback_check_present_TrueFalse'])/4 + int(post_data['feedback_punish_present_TrueFalse'])*3/4 )
     modelDict['feedback_knowledgeable'] = ( int(post_data['feedback_learn']) + int(post_data['feedback_gpa']) ) / 2
     modelDict['feedback_GPA'] = ( int(post_data['feedback_gpa']) )
     modelDict['feedback_easy'] = ( int(post_data['feedback_easy'])*3/4 + int(post_data['feedback_loading'])/12 + int(post_data['feedback_test_amount'])/12 + int(post_data['feedback_test_hard'])/12  )
     modelDict['feedback_FU'] = ( int(post_data['feedback_atmosphere']) )
-
-    # 如果有這門課的心得就get出來，沒有的話就先用這個人的評分存進db
-    course_object, created = Course.objects.get_or_create(school=modelDict['school'],name=modelDict['name'],professor=modelDict['professor'],defaults=modelDict) 
-    course_object = accumulate_feedback(course_object, modelDict)
-
-    return course_object
+    return modelDict
 
 def auto_load_radarChart(slug):
     modelDict = return_modelDict(slug)
-    course_object = Course.objects.get(school=modelDict['school'],name=modelDict['name'],professor=modelDict['professor'])
+    course_object, created = Course.objects.get_or_create(school=modelDict['school'],name=modelDict['name'],professor=modelDict['professor'],defaults=modelDict)
     return course_object
 
 def accumulate_feedback(course_object, modelDict):
@@ -217,6 +222,11 @@ def return_modelDict(slug):
         'school' : slug[0],
         'name' : slug[1],
         'professor' : slug[2],
+        'feedback_freedom' : 0,
+        'feedback_knowledgeable' : 0,
+        'feedback_GPA' : 0,
+        'feedback_easy' : 0,
+        'feedback_FU' : 0,
         'create':timezone.localtime(timezone.now())
     }
     return modelDict
