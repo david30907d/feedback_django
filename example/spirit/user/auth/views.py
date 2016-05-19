@@ -61,20 +61,20 @@ def register(request, registration_form=RegistrationForm):
 
         if not request.is_limited and form.is_valid():
             user = form.save()
-            send_activation_email(request, user)
-            messages.info(
-                request,
-                _("We have sent you an email to %(email)s "
-                  "so you can activate your account!")
-                % {'email': form.get_email()}
-            )
-
+            # send_activation_email(request, user)
+            # messages.info(
+            #     request,
+            #     _("We have sent you an email to %(email)s "
+            #       "so you can activate your account!")
+            #     % {'email': form.get_email()}
+            # )
+            skip_activation(user,request)
             # TODO: email-less activation
             # if not settings.REGISTER_EMAIL_ACTIVATION_REQUIRED:
             # login(request, user)
             # return redirect(request.GET.get('next', reverse('spirit:user:update')))
 
-            return redirect(reverse('spirit:user:auth:login'))
+            # return redirect(reverse('spirit:user:auth:login'))
     else:
         form = registration_form()
 
@@ -119,3 +119,16 @@ def resend_activation_email(request):
     context = {'form': form, }
 
     return render(request, 'spirit/user/auth/activation_resend.html', context)
+
+#########################################
+def skip_activation(user, request):
+    # user = get_object_or_404(User, pk=pk)
+    # activation = UserActivationTokenGenerator()
+
+    # if activation.is_valid(user, token):
+    user.st.is_verified = True
+    user.is_active = True
+    user.save()
+    messages.info(request, _("Your account has been activated!"))
+
+    return redirect(reverse('spirit:user:auth:login'))
