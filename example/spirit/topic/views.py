@@ -189,14 +189,14 @@ def post_feedback(post_data, slug):
     modelDict['feedback_FU'] = ( int(post_data['feedback_atmosphere']) )
 
     # 如果有這門課的心得就get出來，沒有的話就先用這個人的評分存進db
-    course_object, created = Course.objects.get_or_create(school=modelDict['school'],name=modelDict['name'],professor=modelDict['professor'],create=modelDict['create'],defaults=modelDict) 
+    course_object, created = Course.objects.get_or_create(school=modelDict['school'],name=modelDict['name'],professor=modelDict['professor'],defaults=modelDict) 
     course_object = accumulate_feedback(course_object, modelDict)
 
     return course_object
 
 def auto_load_radarChart(slug):
     modelDict = return_modelDict(slug)
-    course_object = Course.objects.filter(school=modelDict['school'],name=modelDict['name'],professor=modelDict['professor'])
+    course_object = Course.objects.get(school=modelDict['school'],name=modelDict['name'],professor=modelDict['professor'])
     return course_object
 
 def accumulate_feedback(course_object, modelDict):
@@ -207,6 +207,7 @@ def accumulate_feedback(course_object, modelDict):
     course_object.feedback_GPA = round(( course_object.feedback_GPA*(tot-1) + modelDict['feedback_GPA'] )/tot, 2)
     course_object.feedback_easy = round(( course_object.feedback_easy*(tot-1) + modelDict['feedback_easy'] )/tot, 2)
     course_object.feedback_FU = round(( course_object.feedback_FU*(tot-1) + modelDict['feedback_FU'] )/tot, 2)
+    course_object.create = timezone.localtime(timezone.now()) # update the last post time
     course_object.save()
     return course_object
 
