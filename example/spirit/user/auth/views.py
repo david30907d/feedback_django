@@ -120,7 +120,7 @@ def resend_activation_email(request):
 
     return render(request, 'spirit/user/auth/activation_resend.html', context)
 
-#########################################
+#################把驗證信的功能關掉########################
 def skip_activation(user, request):
     # user = get_object_or_404(User, pk=pk)
     # activation = UserActivationTokenGenerator()
