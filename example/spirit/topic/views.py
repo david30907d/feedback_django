@@ -20,9 +20,11 @@ from .forms import TopicForm
 from . import utils
 # below are imported by me
 from django.utils import timezone # auto generate create time.
-from get_feedback.models import Course,Course_feedback_Person
+from get_feedback.models import Course,CourseFeedbackPerson
 import decimal, json
 from django.http.request import QueryDict
+from django.utils.translation import ugettext as _
+from django.contrib import messages
 
 
 @login_required
@@ -107,7 +109,14 @@ def detail(request, pk, slug):
 
     if request.POST:
         data = request.POST.dict()
-        context['course_object'] = post_feedback(data, slug, request.user)
+        # 因為要先存在這門課才可以post，所以就可以大膽的直接用get
+        modelDict = return_modelDict(slug) # return 會把slug的網址的'-'給切開，然後以school、name、professor當作primary key創model
+        course_object = Course.objects.get(school=modelDict['school'],name=modelDict['name'],professor=modelDict['professor'])
+        if check_rePost(course_object, request.user):
+            context['course_object'] = auto_load_radarChart(slug)
+            messages.error(request, _("您已經給過評分囉"))
+        else:
+            context['course_object'] = post_feedback(modelDict, data, course_object, slug, request.user)
     else:
         # This part is auto load statistic of course into Radar_chart!!
         context['course_object'] = auto_load_radarChart(slug)
@@ -180,13 +189,8 @@ def auto_publish(request, category_id=3):
     }
     return render(request, 'spirit/topic/publish.html', context)
 
-def post_feedback(post_data, slug, requestUser):
-    modelDict = return_modelDict(slug) # return 會把slug的網址的'-'給切開，然後以school、name、professor當作primary key創model
-
-    modelDict = gradeFormula(modelDict, post_data)
-
-    # 因為要先存在這門課才可以post，所以就可以大膽的直接用get
-    course_object = Course.objects.get(school=modelDict['school'],name=modelDict['name'],professor=modelDict['professor']) 
+def post_feedback(modelDict, post_data, course_object, slug, requestUser):
+    modelDict = gradeFormula(modelDict, post_data) 
     record_attendee_of_Feedback(course_object, requestUser)
     course_object = accumulate_feedback(course_object, modelDict)
 
@@ -234,6 +238,12 @@ def return_modelDict(slug):
     return modelDict
 
 def record_attendee_of_Feedback(course_object, requestUser):
-    p = Course_feedback_Person.objects.create(Course_of_Feedback=course_object, Useremail=requestUser.email, create=timezone.localtime(timezone.now()))
-    print(p.Course_of_Feedback)
+    p = CourseFeedbackPerson.objects.create(Course_of_Feedback=course_object, Useremail=requestUser.email, create=timezone.localtime(timezone.now()))
+
+def check_rePost(course_object, requestUser):
+    for i in course_object.coursefeedbackperson_set.all():
+        # _set manager use "Model name in Lower Case" !!!
+        if i.Useremail == requestUser.email:
+            return True
+    return False
 #########################my function ###########################

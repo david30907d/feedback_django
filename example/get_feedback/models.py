@@ -21,7 +21,7 @@ class Course(models.Model):
   def check_courseID_and_name_not_empty(self):
     return (self.courseID!=None and self.courseID!="") and (self.name!=None and self.name!="")
 
-class Course_feedback_Person(models.Model):
+class CourseFeedbackPerson(models.Model):
   # 這是有參與心得抽獎的人
   Course_of_Feedback = models.ForeignKey(Course)
   Useremail = models.CharField(max_length=30) 
