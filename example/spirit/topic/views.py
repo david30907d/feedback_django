@@ -108,15 +108,21 @@ def detail(request, pk, slug):
     # this part is for get_feedback
 
     if request.POST:
-        data = request.POST.dict()
-        # 因為要先存在這門課才可以post，所以就可以大膽的直接用get
-        modelDict = return_modelDict(slug) # return 會把slug的網址的'-'給切開，然後以school、name、professor當作primary key創model
-        course_object = Course.objects.get(school=modelDict['school'],name=modelDict['name'],professor=modelDict['professor'])
-        if check_rePost(course_object, request.user):
+        if request.user.is_anonymous():
+            messages.error(request, _("請您先登入喔"))
+            # This part is auto load statistic of course into Radar_chart!!
             context['course_object'] = auto_load_radarChart(slug)
-            messages.error(request, _("您已經給過評分囉"))
+
         else:
-            context['course_object'] = post_feedback(modelDict, data, course_object, slug, request.user)
+            data = request.POST.dict()
+            # 因為要先存在這門課才可以post，所以就可以大膽的直接用get
+            modelDict = return_modelDict(slug) # return 會把slug的網址的'-'給切開，然後以school、name、professor當作primary key創model
+            course_object = Course.objects.get(school=modelDict['school'],name=modelDict['name'],professor=modelDict['professor'])
+            if check_rePost(course_object, request.user):
+                context['course_object'] = auto_load_radarChart(slug)
+                messages.error(request, _("您已經給過評分囉"))
+            else:
+                context['course_object'] = post_feedback(modelDict, data, course_object, slug, request.user)
     else:
         # This part is auto load statistic of course into Radar_chart!!
         context['course_object'] = auto_load_radarChart(slug)
