@@ -20,7 +20,7 @@ from .forms import TopicForm
 from . import utils
 # below are imported by me
 from django.utils import timezone # auto generate create time.
-from get_feedback.models import Course
+from get_feedback.models import Course,Course_feedback_Person
 import decimal, json
 from django.http.request import QueryDict
 
@@ -107,7 +107,7 @@ def detail(request, pk, slug):
 
     if request.POST:
         data = request.POST.dict()
-        context['course_object'] = post_feedback(data, slug)
+        context['course_object'] = post_feedback(data, slug, request.user)
     else:
         # This part is auto load statistic of course into Radar_chart!!
         context['course_object'] = auto_load_radarChart(slug)
@@ -180,13 +180,14 @@ def auto_publish(request, category_id=3):
     }
     return render(request, 'spirit/topic/publish.html', context)
 
-def post_feedback(post_data, slug):
+def post_feedback(post_data, slug, requestUser):
     modelDict = return_modelDict(slug) # return 會把slug的網址的'-'給切開，然後以school、name、professor當作primary key創model
 
     modelDict = gradeFormula(modelDict, post_data)
 
-    # 如果有這門課的心得就get出來，沒有的話就先用這個人的評分存進db
+    # 因為要先存在這門課才可以post，所以就可以大膽的直接用get
     course_object = Course.objects.get(school=modelDict['school'],name=modelDict['name'],professor=modelDict['professor']) 
+    record_attendee_of_Feedback(course_object, requestUser)
     course_object = accumulate_feedback(course_object, modelDict)
 
     return course_object
@@ -213,6 +214,7 @@ def accumulate_feedback(course_object, modelDict):
     course_object.feedback_easy = round(( course_object.feedback_easy*(tot-1) + modelDict['feedback_easy'] )/tot, 2)
     course_object.feedback_FU = round(( course_object.feedback_FU*(tot-1) + modelDict['feedback_FU'] )/tot, 2)
     course_object.create = timezone.localtime(timezone.now()) # update the last post time
+
     course_object.save()
     return course_object
 
@@ -230,4 +232,8 @@ def return_modelDict(slug):
         'create':timezone.localtime(timezone.now())
     }
     return modelDict
+
+def record_attendee_of_Feedback(course_object, requestUser):
+    p = Course_feedback_Person.objects.create(Course_of_Feedback=course_object, Useremail=requestUser.email, create=timezone.localtime(timezone.now()))
+    print(p.Course_of_Feedback)
 #########################my function ###########################

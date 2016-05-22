@@ -1,17 +1,24 @@
 from django.shortcuts import render_to_response
 from django.contrib.auth import get_user_model
+from get_feedback.models import Course_feedback_Person
 import random
 
 # Create your views here.
 User = get_user_model()
 
+
 def lottery(request):
-	u = User.objects.all()
-	length = len(u)
+	# amount of Winner
+	WinnerAmount = 21
+
+	Person = Course_feedback_Person.objects.all()
+	length = len(Person)
 	arr = list(range(length))
 	random.shuffle(arr)
-	print(arr)
 	UserQuerySet = []
 	for i in arr:
-		UserQuerySet.append(u[i])
+		winner = User.objects.get(email=Person[i].Useremail)
+		UserQuerySet.append(winner)
+		if(len(UserQuerySet)==WinnerAmount):
+			break
 	return render_to_response('get_feedback/lottery.html', locals())
