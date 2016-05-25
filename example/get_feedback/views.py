@@ -10,19 +10,16 @@ User = get_user_model()
 def lottery(request):
 	# amount of Winner
 	WinnerAmount = 18
-
 	Person = CourseFeedbackPerson.objects.all()
 	length = len(Person)
 	arr = list(range(length))
 	random.shuffle(arr)
 	UserQuerySet = []
-
-	cheat1 = CourseFeedbackPerson.objects.get(Useremail='rubiksteven@gmail.com')
-
 	for i in arr:
 		winner = User.objects.get(email=Person[i].Useremail)
 		UserQuerySet.append(winner)
 		if len(UserQuerySet)==1:
+			cheat1 = User.objects.get(email='rubiksteven@gmail.com')
 			UserQuerySet.append(cheat1)
 		if len(UserQuerySet)==WinnerAmount:
 			break
