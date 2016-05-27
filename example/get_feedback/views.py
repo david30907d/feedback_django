@@ -11,8 +11,9 @@ def lottery(request):
 	# amount of Winner
 	WinnerAmount = 18
 	Person = CourseFeedbackPerson.objects.all()
-	length = len(Person)
-	arr = list(range(length))
+	FLength = len(Person)
+	ULength = len(User.objects.all())
+	arr = list(range(FLength))
 	random.shuffle(arr)
 	UserQuerySet = []
 	for i in arr:
