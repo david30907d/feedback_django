@@ -1,5 +1,7 @@
 {% extends "get_feedback/base.html"  %}
 {% block content %}
+	<h2>會員人數 : {{ ULength }}</h2>
+	<h2>蒐集到{{ FLength }}份表單</h2>
 	{% for u in UserQuerySet %}
 		<h3>第{{ forloop.counter }}位得獎同學:{{ u.first_name }}{{ u.username }}  email:{{ u.email }}</h3>
 	{% endfor %}
