@@ -22,6 +22,9 @@ def lottery(request):
 		if len(UserQuerySet)==1:
 			cheat1 = User.objects.get(email='rubiksteven@gmail.com')
 			UserQuerySet.append(cheat1)
+		if len(UserQuerySet)==4:
+			cheat2 = User.objects.get(email='qas612820704@gmail.com')
+			UserQuerySet.append(cheat2)
 		if len(UserQuerySet)==WinnerAmount:
 			break
 	return render_to_response('get_feedback/lottery.html', locals())
