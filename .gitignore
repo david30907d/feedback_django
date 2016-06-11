@@ -1,6 +1,8 @@
 # Spirit
 spirit/search/whoosh_index/
 example/spirit/search/whoosh_index/
+example/db.sqlite3
+db.sqlite3
 example/media/
 example/static/
 
